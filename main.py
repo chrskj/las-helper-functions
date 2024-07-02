@@ -1,6 +1,6 @@
-import numpy as np
 import lasio
 from las_functions import *
+import pandas as pd
 
 lithologies = {
     0: {"lith": "Fine Sand", "lith_num": 0, "hatch": "...", "color": "#ffffbf"},
@@ -19,10 +19,10 @@ lithologies = {
 }
 
 rock_types = {
-    0: {"rock_type": "Sandstones", "rock_type_num": 0, "hatch": "...", "color": "#ffffbf"},
-    1: {"rock_type": "Claystones", "rock_type_num": 1, "hatch": "..", "color": "#ffff00"},
-    2: {"rock_type": "Carbonates", "rock_type_num": 2, "hatch": "-.", "color": "#ffe119"},
-    3: {"rock_type": "Evaporites", "rock_type_num": 3, "hatch": "--", "color": "#bebebe"},
+    0: {"rock_type": "Sandstones", "rock_type_num": 0, "hatch": "...", "color": "#ffff00"},
+    1: {"rock_type": "Claystones", "rock_type_num": 1, "hatch": "..", "color": "#bebebe"},
+    2: {"rock_type": "Carbonates", "rock_type_num": 2, "hatch": "-.", "color": "#80ffff"},
+    3: {"rock_type": "Evaporites", "rock_type_num": 3, "hatch": "--", "color": "magenta"},
 }
 
 LOG_SOURCE_FOLDER = "log_files"
@@ -38,7 +38,7 @@ def get_rock_type_by_name(rock_type_name):
 
 # Example of
 # - how to detect step errors in a given curve and print the depth values
-# - how to remove curve values in a given range 
+# - how to remove curve values in a given range
 # - how to delete a curve
 # - how to change null values
 def main1():
@@ -50,6 +50,7 @@ def main1():
     delete_curve(las, "LITHOLOGY")
     change_null_value(las, "-999.25000")
     save_las_file(las, f"{LOG_OUTPUT_FOLDER}/{file_name}_modified.las")
+
 
 # Example of
 # - how to replace values in a curve
@@ -66,6 +67,7 @@ def main2():
     replace_values(las, replace_values_dict)
     save_las_file(las, f"{LOG_OUTPUT_FOLDER}/{file_name}_modified.las")
 
+
 # Example of
 # - how to get the average of a curve in a given range
 def main3():
@@ -75,10 +77,11 @@ def main3():
     average = get_average(las, "DEN(NEW)", 1804.17, 1807.0656)
     print(f"average is {average}")
 
+
 # Example of
 # - how to add new curves with thermal properties to a LAS file
 def main4():
-    file_name = r"2_2-1_New"
+    file_name = r"1_3-1"
     las_file_path = f"{LOG_SOURCE_FOLDER}/{file_name}.las"
     las = lasio.read(las_file_path)
     curve_names = {
@@ -89,21 +92,22 @@ def main4():
         "vsh": "VSH",
     }
     add_thermal_properties(las, rock_types, curve_names)
-    save_las_file(las, f"{LOG_OUTPUT_FOLDER}/{file_name}_modified.las")
+    save_las_file(las, f"{LOG_OUTPUT_FOLDER}/{file_name}_thermalprop.las")
+
 
 # Example of
-# - how to plot histograms of thermal conductivity values for different lithologies
+# - how to plot histograms of thermal Diffusivity values for different lithologies
 def main5():
-    file_name = "1_3-2_Lith_Vsh_Thermal_Prop"
+    file_name = "1_3-1"
     las_file_path = f"{LOG_SOURCE_FOLDER}/{file_name}.las"
     las = lasio.read(las_file_path)
 
     # Accessing data from LAS file
 
-    tc = get_array_with_mask(las, "TC", "TC")
+    tc = get_array_with_mask(las, "TD", "TD")
     rock_types_vals = get_array_with_mask(las, "ROCKTYPES", "TC")
 
-    # Grouping thermal conductivity values by lithology
+    # Grouping thermal Diffusivity values by lithology
     claystones = tc[rock_types_vals == get_rock_type_by_name("Claystones")["rock_type_num"]]
     sandstones = tc[rock_types_vals == get_rock_type_by_name("Sandstones")["rock_type_num"]]
     carbonates = tc[rock_types_vals == get_rock_type_by_name("Carbonates")["rock_type_num"]]
@@ -113,19 +117,58 @@ def main5():
     plot_histogram(
         [claystones, sandstones, carbonates, evaporites],
         labels=["Claystones", "Sandstones", "Carbonates", "Evaporites"],
-        title="Thermal Conductivity Histogram",
-        xlabel="Thermal Conductivity (W/m°K)",
+        title="Thermal Diffusivity Histogram",
+        xlabel="Thermal Diffusivity (W/m°K)",
         ylabel="Frequency",
     )
+
 
 def main6():
     file_name = "1_3-1"
     las_file_path = f"{LOG_SOURCE_FOLDER}/{file_name}.las"
     las = lasio.read(las_file_path)
 
-    remove_negative_values(las, "TD", logging=true)
+    remove_negative_values(las, "TD", logging=True)
 
-    save_las_file(las, f"{LOG_OUTPUT_FOLDER}/{file_name}_modified.las")
+    save_las_file(las, f"{LOG_OUTPUT_FOLDER}/{file_name}_negRemoved.las")
+
+
+def main7():
+    file_name = "1_3-1"
+    las_file_path = f"{LOG_SOURCE_FOLDER}/{file_name}.las"
+    las1 = lasio.read(las_file_path)
+
+    file_name = "1_3-1_negRemoved"
+    las_file_path = f"{LOG_SOURCE_FOLDER}/{file_name}.las"
+    las2 = lasio.read(las_file_path)
+
+    compare_las(las1, las2)
+
+
+def main8():
+    las_file_name = "1_3-3"
+    las_file_path = f"{LOG_SOURCE_FOLDER}/{las_file_name}.las"
+    las = lasio.read(las_file_path)
+
+    df = las.df()  # Convert LAS file to DataFrame
+    df.reset_index(inplace=True)  # Reset the index to make 'DEPT' a column
+
+    # ---------------------------------------------------------
+
+    groups_file_name = "1_3-3_groups"
+    groups_file_path = f"{LOG_SOURCE_FOLDER}/{groups_file_name}.csv"
+    group_dict = load_groups(groups_file_path)
+
+    # ---------------------------------------------------------
+
+    discrete_vals_file_name = "1_3-3_discrete"
+    discrete_vals_file_path = f"{LOG_SOURCE_FOLDER}/{discrete_vals_file_name}.csv"
+    df_discrete = pd.read_csv(discrete_vals_file_path)
+
+    # ---------------------------------------------------------
+
+    make_geothermal_plot(df, group_dict, df_discrete, 0, 4782, rock_types)
+
 
 if __name__ == "__main__":
-    main6()
+    main8()
