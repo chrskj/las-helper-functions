@@ -1,6 +1,7 @@
 import lasio
 from las_functions import *
 import pandas as pd
+import os
 
 lithologies = {
     0: {"lith": "Fine Sand", "lith_num": 0, "hatch": "...", "color": "#ffffbf"},
@@ -25,8 +26,9 @@ rock_types = {
     3: {"rock_type": "Evaporites", "rock_type_num": 3, "hatch": "--", "color": "magenta"},
 }
 
-LOG_SOURCE_FOLDER = "log_files"
-LOG_OUTPUT_FOLDER = "log_files_output"
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+LOG_SOURCE_FOLDER = f"{SCRIPT_DIR}/log_files"
+LOG_OUTPUT_FOLDER = f"{SCRIPT_DIR}/log_files_output"
 
 
 def get_rock_type_by_name(rock_type_name):
