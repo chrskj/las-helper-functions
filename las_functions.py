@@ -266,31 +266,25 @@ def make_geothermal_plot(well_log, groups, well_log_discrete, top_depth, bottom_
     temp = well_log_discrete["Temp"]
 
     fig, ax = plt.subplots(figsize=(15, 10))
+
     # Remove unused tick labels for whole graph
     ax.set_xticklabels([])
     ax.set_yticklabels([])
 
     # Set up the plot axes
-    rows, columns = 1, 14
-    rows_i = 0
-    colspan_i = 3
+    colspans = [3, 1, 3, 3, 3, 1]
+    columns = sum(colspans)
+    rows = 1
+    axes = []
+
     colspan_tot = 0
-    ax1 = plt.subplot2grid((rows, columns), (rows_i, colspan_tot), rowspan=1, colspan=colspan_i)
-    colspan_tot += colspan_i
-    colspan_i = 1
-    ax2 = plt.subplot2grid((rows, columns), (rows_i, colspan_tot), rowspan=1, colspan=colspan_i, sharey=ax1)
-    colspan_tot += colspan_i
-    colspan_i = 3
-    ax3 = plt.subplot2grid((rows, columns), (rows_i, colspan_tot), rowspan=1, colspan=colspan_i, sharey=ax1)
-    colspan_tot += colspan_i
-    colspan_i = 3
-    ax4 = plt.subplot2grid((rows, columns), (rows_i, colspan_tot), rowspan=1, colspan=colspan_i, sharey=ax1)
-    colspan_tot += colspan_i
-    colspan_i = 3
-    ax5 = plt.subplot2grid((rows, columns), (rows_i, colspan_tot), rowspan=1, colspan=colspan_i, sharey=ax1)
-    colspan_tot += colspan_i
-    colspan_i = 1
-    ax6 = plt.subplot2grid((rows, columns), (rows_i, colspan_tot), rowspan=1, colspan=colspan_i, sharey=ax1)
+    for colspan in colspans:
+        sharey = axes[0] if axes else None
+        ax = plt.subplot2grid((rows, columns), (0, colspan_tot), rowspan=1, colspan=colspan, sharey=sharey)
+        axes.append(ax)
+        colspan_tot += colspan
+
+    ax1, ax2, ax3, ax4, ax5, ax6 = axes
 
     # As our curve scales will be detached from the top of the track,
     # this code adds the top border back in without dealing with splines
@@ -335,11 +329,12 @@ def make_geothermal_plot(well_log, groups, well_log_discrete, top_depth, bottom_
 
     # Rock type track ========================================================
 
+    color_graph = "black"
     ax2.set_xlabel("Rock Types")
     ax2.set_xlim(0, 1)
-    ax2.xaxis.label.set_color("black")
-    ax2.tick_params(axis="x", colors="black")
-    ax2.spines["top"].set_edgecolor("black")
+    ax2.xaxis.label.set_color(color_graph)
+    ax2.tick_params(axis="x", colors=color_graph)
+    ax2.spines["top"].set_edgecolor(color_graph)
 
     for key, value in rock_types.items():
         color = value["color"]
@@ -386,10 +381,10 @@ def make_geothermal_plot(well_log, groups, well_log_discrete, top_depth, bottom_
     ax5.text(0.95, 1.04, 70, color=color_graph, horizontalalignment="right", transform=ax5.transAxes)
     ax5.set_xticklabels([])
 
-    # Formations ========================================================
+    # Groups ========================================================
 
     ax6.set_xticklabels([])
-    ax6.text(0.5, 1.1, "Formations", fontweight="bold", horizontalalignment="center", transform=ax6.transAxes)
+    ax6.text(0.5, 1.1, "Groups", fontweight="bold", horizontalalignment="center", transform=ax6.transAxes)
 
     # Adding in neutron density shading
 
@@ -402,7 +397,7 @@ def make_geothermal_plot(well_log, groups, well_log_discrete, top_depth, bottom_
         ax.xaxis.set_label_position("top")
         ax.spines["top"].set_position(("axes", 1.02))
 
-    for ax in [ax1, ax3, ax4, ax5, ax6]:
+    for ax in [ax1, ax3, ax4, ax5]:
         # loop through the formations dictionary and zone colors
         for group_i in groups.values():
             # use the depths and colors to shade across the subplots
@@ -417,7 +412,7 @@ def make_geothermal_plot(well_log, groups, well_log_discrete, top_depth, bottom_
 
     for label, formation_mid in zip(groups.keys(), groups_midpoints):
         ax6.text(
-            0.2, formation_mid, label, rotation=45, verticalalignment="center", fontweight="bold", fontsize="medium"
+            0.1, formation_mid, label, rotation=0, verticalalignment="center", fontweight="bold", fontsize="medium"
         )
 
     plt.tight_layout()
