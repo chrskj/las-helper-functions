@@ -6,8 +6,8 @@ from collections import defaultdict
 
 
 def get_depth_min_max_index(las_object, depth_min, depth_max, depth_curve_name="DEPT"):
-    depth_min_index = np.NAN
-    depth_max_index = np.NAN
+    depth_min_index = np.nan
+    depth_max_index = np.nan
     depth_curve = las_object[depth_curve_name]
     for i, depth in enumerate(depth_curve):
         if depth >= depth_min and np.isnan(depth_min_index):
@@ -23,7 +23,7 @@ def remove_curve_values(las_object, curve_name, depth_min, depth_max, depth_curv
     depth_min_index, depth_max_index = get_depth_min_max_index(las_object, depth_min, depth_max, depth_curve_name)
     selected_curve = las_object[curve_name]
     for i in range(depth_min_index, depth_max_index + 1):
-        selected_curve[i] = np.NAN
+        selected_curve[i] = np.nan
 
 
 def get_average(las_object, curve_name, depth_min, depth_max, depth_curve_name="DEPT"):
@@ -32,6 +32,16 @@ def get_average(las_object, curve_name, depth_min, depth_max, depth_curve_name="
     print(selected_curve)
     average_value = selected_curve.mean()
     return average_value
+
+
+def get_averages_for_intervals(las_object, curve_name, intervals, depth_curve_name="DEPT"):
+    averages = []
+    for i in range(0, len(intervals) - 1):
+        depth_min = intervals[i]
+        depth_max = intervals[i + 1]
+        avg = get_average(las_object, curve_name, depth_min, depth_max, depth_curve_name)
+        averages.append((depth_min, depth_max, avg))
+    return averages
 
 
 def delete_curve(las_object, curve_name):
@@ -93,7 +103,7 @@ def remove_negative_values(las_object, curve_name, logging=False):
         if selected_curve[i] < 0:
             if logging:
                 print(f"Negative value found at index {i} with value {selected_curve[i]}")
-            selected_curve[i] = np.NAN
+            selected_curve[i] = np.nan
 
 
 def get_array_with_mask(las_object, array_name, mask_array_name):
@@ -113,57 +123,57 @@ def change_null_value(las_object, new_null_value):
 def thermal_conductivity_clastic(rho_b, vsh):
     if None not in (rho_b, vsh):
         return -1.28 + (1.974 * rho_b) - (2.02 * vsh)  # A55
-    return np.NAN  # Handle the case where vsh is None, you might return a default value or raise an exception
+    return np.nan  # Handle the case where vsh is None, you might return a default value or raise an exception
 
 
 def thermal_conductivity_carbonate(rho_b, vsh):
     if None not in (rho_b, vsh):
         return -2.4 + (2.393 * rho_b) - (1.29 * vsh)  # A24
-    return np.NAN
+    return np.nan
 
 
 def thermal_conductivity_evaporite(rho_b, dt):
     if None not in (rho_b, dt):
         return 15.69 - (3.455 * rho_b) - (0.01725 * dt)  # A7
-    return np.NAN
+    return np.nan
 
 
 # Thermal diffusivity equations
 def thermal_diffusivity_clastic(rho_b, vsh):
     if None not in (rho_b, vsh):
         return -1.64 + (1.29 * rho_b) - (0.78 * vsh)  # B55
-    return np.NAN
+    return np.nan
 
 
 def thermal_diffusivity_carbonate(rho_b, vsh):
     if None not in (rho_b, vsh):
         return -2.11 + (1.42 * rho_b) - (0.35 * vsh)  # B24
-    return np.NAN
+    return np.nan
 
 
 def thermal_diffusivity_evaporite(rho_b, dt):
     if None not in (rho_b, dt):
         return 8.5 - (1.9 * rho_b) - (0.01065 * dt)  # B7
-    return np.NAN
+    return np.nan
 
 
 # Specific heat capacity equations
 def specific_heat_capacity_clastic(rho_b, vsh):
     if None not in (rho_b, vsh):
         return 5176.2 - (1598.4 * rho_b) - (206.8 * vsh)  # C55
-    return np.NAN
+    return np.nan
 
 
 def specific_heat_capacity_carbonate(rho_b, vsh):
     if None not in (rho_b, vsh):
         return 5466.7 - (1664.8 * rho_b) - (436.5 * vsh)  # C24
-    return np.NAN
+    return np.nan
 
 
 def specific_heat_capacity_evaporite(rho_b, dt):
     if None not in (rho_b, dt):
         return -1002.1 + (305 * rho_b) + (6.607 * dt)  # C7
-    return np.NAN
+    return np.nan
 
 
 def calculate_thermal_properties(rho_b, dt, vsh, rock_type, rock_types):
@@ -215,14 +225,14 @@ def add_thermal_properties(
                 # print(thermal_conductivity)
             else:
                 print(f"Missing well log data at depth: {depth} {rho_b}, {phi_n}, {dt}, {vsh}")
-                thermal_conductivity = np.NAN
-                thermal_diffusivity = np.NAN
-                specific_heat_capacity = np.NAN
+                thermal_conductivity = np.nan
+                thermal_diffusivity = np.nan
+                specific_heat_capacity = np.nan
         else:
             print(f"Missing rock type data at depth: {depth}")
-            thermal_conductivity = np.NAN
-            thermal_diffusivity = np.NAN
-            specific_heat_capacity = np.NAN
+            thermal_conductivity = np.nan
+            thermal_diffusivity = np.nan
+            specific_heat_capacity = np.nan
 
         # print(f"{thermal_conductivity} {thermal_diffusivity} {specific_heat_capacity}")
         thermal_conductivity_data.append(thermal_conductivity)
@@ -265,14 +275,41 @@ def make_geothermal_plot(well_log, groups, well_log_discrete, top_depth, bottom_
     gg = well_log_discrete["GG"]
     temp = well_log_discrete["Temp"]
 
-    fig, ax = plt.subplots(figsize=(15, 10))
+    colspans = [3, 1, 3, 3, 3, 1]
+    _, axes = setup_plot(colspans)
 
-    # Remove unused tick labels for whole graph
+    plot_gamma_ray(axes[0], gamma, depth)
+    plot_rock_types(axes[1], well_log, rock_types, depth)
+    plot_temperature(axes[2], temp, depth_discrete)
+    plot_bulk_thermal_conductivity(axes[3], tc, depth_discrete)
+    plot_geothermal_gradient(axes[4], gg, depth_discrete)
+    plot_groups(axes[5], groups)
+
+    finalize_plot(axes, groups, top_depth, bottom_depth)
+
+
+def make_geothermal_plot_2(well_log, groups, well_log_discrete, top_depth, bottom_depth, rock_types):
+    depth = well_log["DEPT"]
+    depth_discrete = well_log_discrete["Depth"]
+    tc = well_log_discrete["TC"]
+    text_labels = [[1000, 2000, 2500], ["T = N * (T - 32) * 5/9", "T = G / (F - 32) * 5/9", "T = NR * (T - 32) * 5/9"]]
+
+    colspans = [2, 3, 1]
+    _, axes = setup_plot(colspans)
+
+    plot_groups(axes[0], groups)
+    plot_bulk_thermal_conductivity(axes[1], tc, depth_discrete, True)
+    plot_rock_types(axes[2], well_log, rock_types, depth, True)
+    plot_text(axes[2], text_labels)
+
+    finalize_plot(axes, groups, top_depth, bottom_depth)
+
+
+def setup_plot(colspans):
+    fig, ax = plt.subplots(figsize=(sum(colspans), 10))
     ax.set_xticklabels([])
     ax.set_yticklabels([])
 
-    # Set up the plot axes
-    colspans = [3, 1, 3, 3, 3, 1]
     columns = sum(colspans)
     rows = 1
     axes = []
@@ -284,137 +321,119 @@ def make_geothermal_plot(well_log, groups, well_log_discrete, top_depth, bottom_
         axes.append(ax)
         colspan_tot += colspan
 
-    ax1, ax2, ax3, ax4, ax5, ax6 = axes
+    return fig, axes
 
-    # As our curve scales will be detached from the top of the track,
-    # this code adds the top border back in without dealing with splines
-    ax10 = ax1.twiny()
-    ax10.xaxis.set_visible(False)
-    ax11 = ax2.twiny()
-    ax11.xaxis.set_visible(False)
-    ax12 = ax3.twiny()
-    ax12.xaxis.set_visible(False)
-    ax13 = ax4.twiny()
-    ax13.xaxis.set_visible(False)
-    ax14 = ax5.twiny()
-    ax14.xaxis.set_visible(False)
 
-    # Gamma-ray track ========================================================
-
+def plot_gamma_ray(ax, gamma, depth, hide_y_labels=False):
     color_graph = "green"
-    ax1.plot(gamma, depth, color=color_graph, linewidth=0.5)
-    ax1.set_xlabel("Gamma")
-    ax1.xaxis.label.set_color(color_graph)
-    ax1.set_xlim(0, 150)
-    ax1.set_ylabel("Depth (m)")
-    ax1.tick_params(axis="x", colors=color_graph)
-    ax1.spines["top"].set_edgecolor(color_graph)
-    ax1.title.set_color(color_graph)
-    ax1.set_xticks([0, 50, 100, 150])
-    ax1.text(0.05, 1.04, 0, color=color_graph, horizontalalignment="left", transform=ax1.transAxes)
-    ax1.text(0.95, 1.04, 150, color=color_graph, horizontalalignment="right", transform=ax1.transAxes)
-    ax1.set_xticklabels([])
+    ax.plot(gamma, depth, color=color_graph, linewidth=0.5)
+    ax.set_xlabel("Gamma")
+    ax.set_xlim(0, 150)
+    ax.set_ylabel("Depth (m)")
+    ax.tick_params(axis="x", colors=color_graph)
+    ax.spines["top"].set_edgecolor(color_graph)
+    ax.set_xticks([0, 50, 100, 150])
+    ax.set_xticklabels([])
 
-    ## Setting Up Shading for GR
+    # Shading for Gamma-ray
     left_col_value = 0
     right_col_value = 150
     span = abs(left_col_value - right_col_value)
     cmap = plt.get_cmap("hot_r")
     color_index = np.arange(left_col_value, right_col_value, span / 100)
-    # loop through each value in the color_index
     for index in sorted(color_index):
         index_value = (index - left_col_value) / span
-        color = cmap(index_value)  # obtain color for color index value
-        ax1.fill_betweenx(depth, gamma, right_col_value, where=gamma >= index, color=color)
+        color = cmap(index_value)
+        ax.fill_betweenx(depth, gamma, right_col_value, where=gamma >= index, color=color)
+    if hide_y_labels:
+        ax.tick_params(labelleft=False)
 
-    # Rock type track ========================================================
 
+def plot_rock_types(ax, well_log, rock_types, depth, hide_y_labels=False):
+    # ax.xaxis.set_visible(False)
+    # ax.yaxis.set_visible(False)
     color_graph = "black"
-    ax2.set_xlabel("Rock Types")
-    ax2.set_xlim(0, 1)
-    ax2.xaxis.label.set_color(color_graph)
-    ax2.tick_params(axis="x", colors=color_graph)
-    ax2.spines["top"].set_edgecolor(color_graph)
+    ax.set_xlabel("Rock Types")
+    ax.set_xlim(0, 1)
+    ax.tick_params(axis="x", colors=color_graph)
+    ax.spines["top"].set_edgecolor(color_graph)
 
     for key, value in rock_types.items():
         color = value["color"]
         mask = well_log["4ROCKTYPES"] == key
-        ax2.fill_betweenx(depth, 0, 1, where=mask, facecolor=color)
-    ax2.set_xticklabels([])
+        ax.fill_betweenx(depth, 0, 1, where=mask, facecolor=color)
 
-    # Temperature track ========================================================
+    if hide_y_labels:
+        ax.tick_params(labelleft=False)
+    ax.set_xticklabels([])
 
+
+def plot_temperature(ax, temp, depth_discrete, hide_y_labels=False):
     color_graph = "red"
-    ax3.plot(temp, depth_discrete, color=color_graph, linewidth=1, marker="o", markersize=2.5)
-    ax3.set_xlabel("Temperature [°C]")
-    ax3.set_xlim(0, 200)
-    ax3.xaxis.label.set_color(color_graph)
-    ax3.tick_params(axis="x", colors=color_graph)
-    ax3.spines["top"].set_edgecolor(color_graph)
-    ax3.text(0.05, 1.04, 0, color=color_graph, horizontalalignment="left", transform=ax3.transAxes)
-    ax3.text(0.95, 1.04, 200, color=color_graph, horizontalalignment="right", transform=ax3.transAxes)
-    ax3.set_xticklabels([])
+    ax.plot(temp, depth_discrete, color=color_graph, linewidth=1, marker="o", markersize=2.5)
+    ax.set_xlabel("Temperature [°C]")
+    ax.set_xlim(0, 200)
+    ax.tick_params(axis="x", colors=color_graph)
+    ax.spines["top"].set_edgecolor(color_graph)
+    if hide_y_labels:
+        ax.tick_params(labelleft=False)
+    ax.set_xticklabels([])
 
-    # Bulk thermal conductivity ========================================================
 
+def plot_bulk_thermal_conductivity(ax, tc, depth_discrete, hide_y_labels=False):
     color_graph = "purple"
-    ax4.plot(tc, depth_discrete, color=color_graph, linewidth=1, marker="o", markersize=2.5)
-    ax4.set_xlabel("Bulk thermal conduc [W/m°C]")
-    ax4.set_xlim(0.5, 5.5)
-    ax4.xaxis.label.set_color(color_graph)
-    ax4.tick_params(axis="x", colors=color_graph)
-    ax4.spines["top"].set_edgecolor(color_graph)
-    ax4.text(0.05, 1.04, 0, color=color_graph, horizontalalignment="left", transform=ax4.transAxes)
-    ax4.text(0.95, 1.04, 5.5, color=color_graph, horizontalalignment="right", transform=ax4.transAxes)
-    ax4.set_xticklabels([])
+    ax.plot(tc, depth_discrete, color=color_graph, linewidth=1, marker="o", markersize=2.5)
+    ax.set_xlabel("Bulk thermal conduc [W/m°C]")
+    ax.set_xlim(0.5, 5.5)
+    ax.tick_params(axis="x", colors=color_graph)
+    ax.spines["top"].set_edgecolor(color_graph)
+    if hide_y_labels:
+        ax.tick_params(labelleft=False)
+    ax.set_xticklabels([])
 
-    # Geothermal gradient ========================================================
 
+def plot_geothermal_gradient(ax, gg, depth_discrete, hide_y_labels=False):
     color_graph = "brown"
-    ax5.plot(gg, depth_discrete, color=color_graph, linewidth=1, marker="o", markersize=2.5)
-    ax5.set_xlabel("Geothermal gradient [°C/km]")
-    ax5.set_xlim(10, 70)
-    ax5.xaxis.label.set_color(color_graph)
-    ax5.tick_params(axis="x", colors=color_graph)
-    ax5.spines["top"].set_edgecolor(color_graph)
-    ax5.text(0.05, 1.04, 0, color=color_graph, horizontalalignment="left", transform=ax5.transAxes)
-    ax5.text(0.95, 1.04, 70, color=color_graph, horizontalalignment="right", transform=ax5.transAxes)
-    ax5.set_xticklabels([])
+    ax.plot(gg, depth_discrete, color=color_graph, linewidth=1, marker="o", markersize=2.5)
+    ax.set_xlabel("Geothermal gradient [°C/km]")
+    ax.set_xlim(10, 70)
+    ax.tick_params(axis="x", colors=color_graph)
+    ax.spines["top"].set_edgecolor(color_graph)
+    if hide_y_labels:
+        ax.tick_params(labelleft=False)
+    ax.set_xticklabels([])
 
-    # Groups ========================================================
 
-    ax6.set_xticklabels([])
-    ax6.text(0.5, 1.1, "Groups", fontweight="bold", horizontalalignment="center", transform=ax6.transAxes)
+def plot_groups(ax, groups, hide_y_labels=False):
+    ax.set_xlabel("Groups")
+    groups_midpoints = [(value[0] + (value[1] - value[0]) / 2) for value in groups.values()]
+    for label, formation_mid in zip(groups.keys(), groups_midpoints):
+        ax.text(0.1, formation_mid, label, rotation=0, verticalalignment="center", fontweight="bold", fontsize="medium")
+    if hide_y_labels:
+        ax.tick_params(labelleft=False)
+    ax.set_xticklabels([])
 
-    # Adding in neutron density shading
 
-    # Common functions for setting up the plot can be extracted into
-    # a for loop. This saves repeating code.
-    for ax in [ax1, ax2, ax3, ax4, ax5]:
+def plot_text(ax, text_dict):
+    ax2 = ax.twinx()
+    ax2.set_yticks(text_dict[0])
+    ax2.set_yticklabels(text_dict[1])
+
+
+def finalize_plot(axes, groups, top_depth, bottom_depth):
+    for ax in axes[:-1]:  # All except the last
         ax.set_ylim(bottom_depth, top_depth)
         ax.grid(which="major", color="lightgrey", linestyle="-")
         ax.xaxis.set_ticks_position("top")
         ax.xaxis.set_label_position("top")
         ax.spines["top"].set_position(("axes", 1.02))
 
-    for ax in [ax1, ax3, ax4, ax5]:
-        # loop through the formations dictionary and zone colors
+    # Color each interval
+    # for ax in axes:
+    for ax in axes[:-1]:  # All except the last
         for group_i in groups.values():
-            # use the depths and colors to shade across the subplots
             ax.axhspan(group_i[0], group_i[1], color=group_i[2], alpha=0.1)
 
-    for ax in [ax2, ax3, ax4, ax5, ax6]:
-        plt.setp(ax.get_yticklabels(), visible=False)
-
-    groups_midpoints = []
-    for _, value in groups.items():
-        groups_midpoints.append(value[0] + (value[1] - value[0]) / 2)
-
-    for label, formation_mid in zip(groups.keys(), groups_midpoints):
-        ax6.text(
-            0.1, formation_mid, label, rotation=0, verticalalignment="center", fontweight="bold", fontsize="medium"
-        )
-
     plt.tight_layout()
-    fig.subplots_adjust(wspace=0)
+    axes[0].figure.subplots_adjust(wspace=0)
     plt.show()

@@ -1,7 +1,7 @@
-import lasio
 from las_functions import *
 import pandas as pd
 import os
+import lasio
 
 lithologies = {
     0: {"lith": "Fine Sand", "lith_num": 0, "hatch": "...", "color": "#ffffbf"},
@@ -44,12 +44,12 @@ def get_rock_type_by_name(rock_type_name):
 # - how to delete a curve
 # - how to change null values
 def main1():
-    file_name = "1_3-2_Lith_Vsh_TP_RHP"
+    file_name = "1_3-1"
     las_file_path = f"{LOG_SOURCE_FOLDER}/{file_name}.las"
     las = lasio.read(las_file_path)
     detect_step_error(las)
     remove_curve_values(las, "HRHOB(NEW)", 1804.3124, 2093.1104)
-    delete_curve(las, "LITHOLOGY")
+    delete_curve(las, "ROCKTYPES")
     change_null_value(las, "-999.25000")
     save_las_file(las, f"{LOG_OUTPUT_FOLDER}/{file_name}_modified.las")
 
@@ -57,13 +57,13 @@ def main1():
 # Example of
 # - how to replace values in a curve
 def main2():
-    file_name = r"1_3-2_Lith_Vsh_TP_RHP"
+    file_name = r"1_3-1"
     las_file_path = f"{LOG_SOURCE_FOLDER}/{file_name}.las"
     replace_values_dict = {
-        "sandstones": 0,
-        "claystones": 1,
-        "carbonates": 2,
-        "evaporites": 3,
+        0: "sandstones",
+        1: "claystones",
+        2: "carbonates",
+        3: "evaporites",
     }
     las = lasio.read(las_file_path)
     replace_values(las, replace_values_dict)
@@ -73,10 +73,10 @@ def main2():
 # Example of
 # - how to get the average of a curve in a given range
 def main3():
-    file_name = r"1_2-2"
+    file_name = r"1_3-3"
     las_file_path = f"{LOG_SOURCE_FOLDER}/{file_name}.las"
     las = lasio.read(las_file_path)
-    average = get_average(las, "DEN(NEW)", 1804.17, 1807.0656)
+    average = get_average(las, "HGR(NEW)", 1804.17, 1807.0656)
     print(f"average is {average}")
 
 
@@ -172,5 +172,47 @@ def main8():
     make_geothermal_plot(df, group_dict, df_discrete, 0, 4782, rock_types)
 
 
+def main9():
+    file_name = r"1_3-3"
+    las_file_path = f"{LOG_SOURCE_FOLDER}/{file_name}.las"
+    las = lasio.read(las_file_path)
+
+    # List of depth intervals
+    intervals = [2486, 3648, 3733, 3854, 4020, 4126, 4561, 5324, 5625, 5655, 5753, 5902, 5927, 6018, 6079]
+
+    # Calculate averages for each interval
+    averages = get_averages_for_intervals(las, "TC_BULK", intervals)
+
+    # Print the results
+    for depth_min, depth_max, avg in averages:
+        print(f"Average TC_BULK from {depth_min}m to {depth_max}m is {avg}")
+
+def main10():
+    las_file_name = "1_3-3"
+    las_file_path = f"{LOG_SOURCE_FOLDER}/{las_file_name}.las"
+    las = lasio.read(las_file_path)
+
+    df = las.df()  # Convert LAS file to DataFrame
+    df.reset_index(inplace=True)  # Reset the index to make 'DEPT' a column
+
+    # ---------------------------------------------------------
+
+    groups_file_name = "1_3-3_groups"
+    groups_file_path = f"{LOG_SOURCE_FOLDER}/{groups_file_name}.csv"
+    group_dict = load_groups(groups_file_path)
+
+    # ---------------------------------------------------------
+
+    discrete_vals_file_name = "1_3-3_discrete"
+    discrete_vals_file_path = f"{LOG_SOURCE_FOLDER}/{discrete_vals_file_name}.csv"
+    df_discrete = pd.read_csv(discrete_vals_file_path)
+
+    # ---------------------------------------------------------
+
+    make_geothermal_plot_2(df, group_dict, df_discrete, 0, 4782, rock_types)
+
+
+
+
 if __name__ == "__main__":
-    main8()
+    main10()
